@@ -52,7 +52,7 @@
 > 以kms插件为例所有插件都必须以此规范开发
 压缩包名：**kms**.tar.gz
 Web页面：Module_**kms**.asp
-Icon图标：icon-**kms**.asp
+Icon图标：icon-**kms**.png
 以上3个文件必须以这种方式定义，**粗体**的可以更改为你要开发插件名。
 例如 **xxx**.tar.gz
 那么web页面就是: Module_**xxx**.asp
@@ -378,7 +378,7 @@ $.ajax({
 	url: '/applydb.cgi?p=kms_',
 	contentType: "application/x-www-form-urlencoded",
 	dataType: 'text',
-	data: obj,
+	data: dbus,
 	success: function(response) {
 		//do something here...
 	}
