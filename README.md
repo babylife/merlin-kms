@@ -1,13 +1,9 @@
 # 梅林软件中心插件开发教程详解
-
+[（教程镜像链接）](https://www.zybuluo.com/9168131/note/994332)
 ------
 
-
-
-###下面我们将按照以下顺序进行详解
-
-> 
-1．	梅林插件介绍 
+##下面我们将按照以下顺序进行详解
+1．	梅林插件介绍
 2．	插件目录结构
 3．	插件的命名规范
 4．	插件相关参数提交及保存
@@ -16,13 +12,13 @@
 7．	插件打包成离线安装包
 
 ------
-## 1.梅林插件介绍 
+#1.梅林插件介绍 
 
 >  梅林插件通俗来说是对路由器本身功能的一个扩展，让其原本不支持的功能通过扩展插件的方式实现，那么功能有多强呢？有句话叫：贫穷限制了我们的想象力。只有想不到，没有做不到！
 
 ------
 
-## 2.插件目录结构
+#2.插件目录结构
 
                                    kms.tar.gz
                                        |  
@@ -43,7 +39,7 @@
 
 ---
 
-##3.插件的命名规范
+#3.插件的命名规范
 
 
 > 以kms插件为例所有插件都必须以此规范开发
@@ -58,13 +54,13 @@ Bin、script不做限制，子页面不做限制
 ---
 
 
-##4.插件相关参数提交及保存
+#4.插件相关参数提交及保存
 
 
     首先说一下插件的运作原理：
     页面设置保存 – 提交至 dbus 保存参数–dbus执行提交的shell脚本名称 –        shell脚本通过dbus 获取所需执行的参数
     
-####1.这是kms插件的页面代码 Module_kms.asp
+###这是kms插件的页面代码 Module_kms.asp
 
 
 ```html
@@ -293,16 +289,9 @@ Bin、script不做限制，子页面不做限制
 
 ---
 
-###2.如何提交？
-> 我们可以看module_kms.asp 第 96 行：
-```html
-<form method="POST" name="form" action="/applydb.cgi?p=kms_" target="hidden_frame">
-```
-> 这里的 form 定义了提交到dbus的插件数据名（相当于数据库的表名） "*applydb.cgi?p=kms_*"
 
----
 
-###3.dbus中到底存了哪些数据？
+###dbus中到底存了哪些数据？
 > 我们可以通过http://192.168.x.x/dbconf?p=kms_
 来查看dbus中保存以kms_保存的所有数据
 下面是 dbus 中的数据：
@@ -317,7 +306,9 @@ return o;
 })();
 ```
 ---
-###4.javascript 和 页面取值的方法
+
+###javascript 和 页面取值的方法
+
 > 第25行，当你载入页面javascript默认会调用并取出所有kms的参数
 ```javascript
 <script type="text/javascript" src="/dbconf?p=kms_&v=<% uptime(); %>"></script>
@@ -356,8 +347,19 @@ $.ajax({
 我们可以通过ajax获取！
 
 ---
+###如何提交保存？
+> 我们可以看module_kms.asp 第 96 行：
+```html
+<form method="POST" name="form" action="/applydb.cgi?p=kms_" target="hidden_frame">
+```
+> 这里的 form 定义了提交到dbus的插件数据名（相当于数据库的表名） "*applydb.cgi?p=kms_*"
+> 只要你点击提交那么input标签里面的值都会保存到dbus中。下面就是执行shell当你执行的时候其实也等于是提交保存。
 
-我们也可以通过ajax提交！
+---
+
+#5． 插件如何调用shell执行相关功能 
+
+我们可以通过ajax提交并执行shell脚本！
 ```javascript
 var dbus={};
 dbus["SystemCmd"] = "kms.sh";
@@ -398,3 +400,175 @@ dbus["current_page"] = "Module_kms.asp";
 <input name="SystemCmd" onkeydown="onSubmitCtrl(this, ' Refresh ')" value="kms.sh" />
 ```
 当你提交之后那么页面也会提交这些参数并执行。
+
+那么我们来看看kms.sh的神秘之处：kms.sh
+```shell
+#!/bin/sh
+# load path environment in dbus databse
+eval `dbus export kms`
+source /koolshare/scripts/base.sh
+CONFIG_FILE=/jffs/configs/dnsmasq.d/kms.conf
+FIREWALL_START=/jffs/scripts/firewall-start
+
+start_kms(){
+	/koolshare/bin/vlmcsd
+	echo "srv-host=_vlmcs._tcp.lan,`uname -n`.lan,1688,0,100" > $CONFIG_FILE
+	nvram set lan_domain=lan
+   	nvram commit
+	service restart_dnsmasq
+	# creating iptables rules to firewall-start
+	mkdir -p /jffs/scripts
+	if [ ! -f $FIREWALL_START ]; then 
+		cat > $FIREWALL_START <<-EOF
+		#!/bin/sh
+	EOF
+	fi
+
+	# creat start_up file
+	if [ ! -L "/koolshare/init.d/S97Kms.sh" ]; then 
+		ln -sf /koolshare/scripts/kms.sh /koolshare/init.d/S97Kms.sh
+	fi
+}
+stop_kms(){
+	# clear start up command line in firewall-start
+	killall vlmcsd
+	rm $CONFIG_FILE
+	service restart_dnsmasq
+}
+
+open_port(){
+	ifopen=`iptables -S -t filter | grep INPUT | grep dport |grep 1688`
+	if [ -z "$ifopen" ];then
+		iptables -t filter -I INPUT -p tcp --dport 1688 -j ACCEPT
+	fi
+
+	if [ ! -f $FIREWALL_START ]; then
+		cat > $FIREWALL_START <<-EOF
+		#!/bin/sh
+		EOF
+	fi
+	
+	fire_rule=$(cat $FIREWALL_START | grep 1688)
+	if [ -z "$fire_rule" ];then
+		cat >> $FIREWALL_START <<-EOF
+		iptables -t filter -I INPUT -p tcp --dport 1688 -j ACCEPT
+		EOF
+	fi
+}
+
+close_port(){
+	ifopen=`iptables -S -t filter | grep INPUT | grep dport |grep 1688`
+	if [ ! -z "$ifopen" ];then
+		iptables -t filter -D INPUT -p tcp --dport 1688 -j ACCEPT
+	fi
+
+	fire_rule=$(cat $FIREWALL_START | grep 1688)
+	if [ ! -z "$fire_rule" ];then
+		sed -i '/1688/d' $FIREWALL_START >/dev/null 2>&1
+	fi
+}
+
+case $ACTION in
+start)
+	if [ "$kms_enable" == "1" ]; then
+		logger "[软件中心]: 启动KMS！"
+		start_kms
+		[ "$kms_wan_port" == "1" ] && open_port
+	else
+		logger "[软件中心]: KMS未设置开机启动，跳过！"
+	fi
+	;;
+stop)
+	close_port >/dev/null 2>&1
+	stop_kms
+	;;
+*)
+	if [ "$kms_enable" == "1" ]; then
+		close_port >/dev/null 2>&1
+		stop_kms
+   		start_kms
+   		[ "$kms_wan_port" == "1" ] && open_port
+   	else
+   		close_port
+		stop_kms
+	fi
+	;;
+esac
+
+```
+如何让脚本开机自启动呢？下面的脚本就是：
+```shell
+ # creat start_up file
+    if [ ! -L "/koolshare/init.d/S97Kms.sh" ]; then 
+        ln -sf /koolshare/scripts/kms.sh /koolshare/init.d/S97Kms.sh
+    fi
+```
+其实就是将kms.sh 做了个软连接到init.d文件夹下并以S+数字的形式。
+这样软件中心就会在开机自动执行该脚本的 $ACTION start方法。
+#6．插件安装&卸载脚本
+
+> 插件的安装脚本：install.sh
+```shell
+#!/bin/sh
+
+# stop kms first
+enable=`dbus get kms_enable`
+if [ "$enable" == "1" ];then
+	restart=1
+	dbus set kms_enable=0
+	sh /koolshare/scripts/kms.sh
+fi
+
+# cp files
+cp -rf /tmp/kms/scripts/* /koolshare/scripts/
+cp -rf /tmp/kms/bin/* /koolshare/bin/
+cp -rf /tmp/kms/webs/* /koolshare/webs/
+cp -rf /tmp/kms/res/* /koolshare/res/
+
+# delete install tar
+rm -rf /tmp/kms* >/dev/null 2>&1
+
+chmod a+x /koolshare/scripts/kms.sh
+chmod 0755 /koolshare/bin/vlmcsd
+
+# re-enable kms
+if [ "$restart" == "1" ];then
+	dbus set kms_enable=1
+	sh /koolshare/scripts/kms.sh
+fi
+```
+> 插件的卸载脚本：uninstall.sh
+```shell
+#!/bin/sh
+
+rm /koolshare/bin/vlmcsd
+rm /koolshare/res/icon-kms.png
+rm /koolshare/scripts/kms.sh
+rm /koolshare/webs/Module_kms.asp
+```
+
+#7．插件打包成离线安装包
+
+只要按照将先压缩成tar格式再压缩成gz就行了。
+注意的是 install.sh 不能缺失，否则无法安装。
+
+
+
+
+
+
+
+
+
+
+------
+
+再一次感谢您花费时间阅读这份开发教程，这也是我第一次用makedown写教程，如果你觉得乱先将就着看，以后我会慢慢改进，如果你在开发过程中还有什么不理解的可以和我联系。
+
+QQ：[9168131](http://wpa.qq.com/msgrd?v=3&uin=9168131&site=qq&menu=yes)
+Telegram：https://t.me/JSMonkey
+
+如果有大神愿意捐赠的欢迎点击：[捐赠链接](https://ubgame.net/?link=donate)
+
+作者 [JSMonkey](https://ubgame.net)
+2017 年 12月 21日    
