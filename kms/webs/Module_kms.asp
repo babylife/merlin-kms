@@ -65,7 +65,7 @@
 			function version_show(){
 				$j("#kms_version_status").html("<i>当前版本：" + db_kms_['kms_version']);
 			    $j.ajax({
-			        url: 'https://raw.githubusercontent.com/koolshare/koolshare.github.io/acelan_softcenter_ui/kms/config.json.js',
+			        url: 'https://github.com/JSZMonkey/merlin-kms/raw/master/config.json.js',
 			        type: 'GET',
 			        success: function(res) {
 			            var txt = $j(res.responseText).text();
@@ -154,7 +154,7 @@
 															<div id="kms_version_show" style="padding-top:5px;margin-left:230px;margin-top:0px;"><i>当前版本：<% dbus_get_def("kms_version", "未知"); %></i>
 															</div>
 															<div id="kms_install_show" style="padding-top:5px;margin-left:330px;margin-top:-25px;"></div>
-															<a style="margin-left: 318px;" href="https://raw.githubusercontent.com/koolshare/koolshare.github.io/acelan_softcenter_ui/kms/Changelog.txt" target="_blank"><em>[<u> 更新日志 </u>]</em></a>
+															<a style="margin-left: 318px;" href="https://github.com/JSZMonkey/merlin-kms/raw/master/Changelog.txt" target="_blank"><em>[<u> 更新日志 </u>]</em></a>
 														</td>
 													</tr>
 													<tr id="port_tr">
@@ -181,14 +181,14 @@
 													<h3>【1】 奥菲斯鸡或</h3>
 													<p>CD <font color="red">X</font>:\Program Files<font color="red">(X86)</font>\Microsoft Office\Office<font color="red">14</font>
 													</p>
-													<p>cscript ospp.vbs /sethst:<font color="red">192.168.0.1</font>
+													<p>cscript ospp.vbs /sethst:<font color="red">192.168.50.1</font>
 													</p>
 													<p>cscript ospp.vbs /act</p>
 													<p>cscript ospp.vbs /dstatus</p>
 													<h3>【2】 操作系统鸡或</h3>
 													<p>slmgr /ipk <font color="red">MHF9N-XY6XB-WVXMC-BTDCT-MKKG7</font>
 													</p>
-													<p>slmgr /skms <font color="red">192.168.0.1</font>
+													<p>slmgr /skms <font color="red">192.168.50.1</font>
 													</p>
 													<p>slmgr /ato</p>
 													<h2>申明：本工具来自国外互联网 <a href="https://forums.mydigitallife.info/threads/50234-Emulated-KMS-Servers-on-non-Windows-platforms" target="_blank">点我跳转</a></h2>
